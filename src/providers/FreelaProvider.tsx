@@ -25,6 +25,15 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
     return listaFreelas.reduce((acc, freela) => acc + freela.totalLiquido, 0);
   }, [listaFreelas]);
 
+  const mediaMensal = useMemo(() => {
+  if (listaFreelas.length === 0) return 0;
+
+  const mesesComAtividade = listaFreelas.map(freela => freela.data.substring(0, 7));
+  const quantidadeMeses = new Set(mesesComAtividade).size; //Removendo duplicatas
+
+  return saldoTotal / (quantidadeMeses || 1); // Evita divisão por zero
+}, [listaFreelas, saldoTotal]);
+
   useEffect(() => {
     localStorage.setItem("freelas", JSON.stringify(listaFreelas));
   }, [listaFreelas]);
@@ -80,6 +89,7 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
         adicionarMeta,    
         deletarMeta,      
         saldoTotal,       
+        mediaMensal,
       }}
     >
       {children}

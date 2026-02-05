@@ -15,6 +15,7 @@ export type FreelaContextType = {
   adicionarMeta: (meta: Meta) => void;
   deletarMeta: (id: number) => void;
   saldoTotal: number;
+  mediaMensal: number;
 };
 
 export const FreelaContext = createContext<FreelaContextType | undefined>(undefined);
