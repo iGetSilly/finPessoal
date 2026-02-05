@@ -5,4 +5,5 @@ export type Freela = {
   transportePublico: number;
   transporteUber: number;
   totalLiquido: number;
+  user_id?: string;
 };

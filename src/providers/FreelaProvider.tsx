@@ -4,107 +4,181 @@ import type { Freela } from "../types/Freela";
 import type { Meta } from "../types/Meta";
 import type { Gasto } from "../types/Gasto";
 import { FreelaContext } from "../contexts/FreelaContext";
+import { useAuth } from "../hooks/useAuth";
+import * as api from "../lib/api";
 
 type FreelaProviderProps = {
   children: ReactNode;
 };
 
 export function FreelaProvider({ children }: FreelaProviderProps) {
-  const [listaFreelas, setListaFreelas] = useState<Freela[]>(() => {
-    return JSON.parse(localStorage.getItem("freelas") || "[]");
-  });
-
+  const { user } = useAuth();
+  
+  const [listaFreelas, setListaFreelas] = useState<Freela[]>([]);
+  const [listaMetas, setListaMetas] = useState<Meta[]>([]);
+  const [listaGastos, setListaGastos] = useState<Gasto[]>([]);
   const [paginaAtiva, setPaginaAtiva] = useState<"freelas" | "metas" | "gastos">("freelas");
+  const [loading, setLoading] = useState(true);
 
-  const [listaMetas, setListaMetas] = useState<Meta[]>(() => {
-    return JSON.parse(localStorage.getItem("metas") || "[]");
-  });
+  // Carregar dados do Supabase quando user logar
+  useEffect(() => {
+    if (!user) {
+      setListaFreelas([]);
+      setListaMetas([]);
+      setListaGastos([]);
+      setLoading(false);
+      return;
+    }
 
-  // NOVO: Estado de gastos
-  const [listaGastos, setListaGastos] = useState<Gasto[]>(() => {
-    return JSON.parse(localStorage.getItem("gastos") || "[]");
-  });
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [freelas, metas, gastos] = await Promise.all([
+          api.getFreelas(user.id),
+          api.getMetas(user.id),
+          api.getGastos(user.id),
+        ]);
+
+        setListaFreelas(freelas);
+        setListaMetas(metas);
+        setListaGastos(gastos);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   // Calcular saldo total
   const saldoTotal = useMemo(() => {
     return listaFreelas.reduce((acc, freela) => acc + freela.totalLiquido, 0);
   }, [listaFreelas]);
 
-  // Calcular saldo mensal (mês atual)
+  // Calcular média mensal
   const saldoMensal = useMemo(() => {
-  if (listaFreelas.length === 0) return 0;
-  
-  // Cria uma lista de strings "AAAA-MM"
-  const mesesComAtividade = listaFreelas.map(freela => freela.data.substring(0, 7));
-  
-  // O Set remove as duplicatas automaticamente
-  const quantidadeMeses = new Set(mesesComAtividade).size;
-  
-  return saldoTotal / (quantidadeMeses || 1); 
-}, [listaFreelas, saldoTotal]);
+    if (listaFreelas.length === 0) return 0;
 
-  // Calcular média líquida por dia de freela
+    const mesesComAtividade = listaFreelas.map((f) => f.data.substring(0, 7));
+    const quantidadeMeses = new Set(mesesComAtividade).size;
+
+    return saldoTotal / (quantidadeMeses || 1);
+  }, [listaFreelas, saldoTotal]);
+
+  // Calcular média líquida por dia
   const mediaLiquidaPorDia = useMemo(() => {
     if (listaFreelas.length === 0) return 0;
     return saldoTotal / listaFreelas.length;
   }, [saldoTotal, listaFreelas.length]);
 
-  useEffect(() => {
-    localStorage.setItem("freelas", JSON.stringify(listaFreelas));
-  }, [listaFreelas]);
+  // ==================== FREELAS ====================
 
-  useEffect(() => {
-    localStorage.setItem("metas", JSON.stringify(listaMetas));
-  }, [listaMetas]);
+  const adicionarFreela = async (freela: Freela) => {
+    if (!user) return;
 
-  // NOVO: Salvar gastos no localStorage
-  useEffect(() => {
-    localStorage.setItem("gastos", JSON.stringify(listaGastos));
-  }, [listaGastos]);
-
-  const adicionarFreela = (freela: Freela) => {
-    setListaFreelas((prev) => [freela, ...prev]);
-  };
-
-  const atualizarFreela = (id: number, freelaAtualizada: Freela) => {
-    setListaFreelas((prev) =>
-      prev.map((freela) => (freela.id === id ? freelaAtualizada : freela))
-    );
-  };
-
-  const deletarFreela = (id: number) => {
-    const confirma = window.confirm("Tem certeza que deseja deletar esta diária?");
-    if (confirma) {
-      setListaFreelas((prev) => prev.filter((freela) => freela.id !== id));
+    try {
+      const novaFreela = await api.addFreela(user.id, freela);
+      setListaFreelas((prev) => [novaFreela, ...prev]);
+    } catch (error) {
+      console.error("Erro ao adicionar freela:", error);
+      alert("Erro ao salvar freela");
     }
   };
+
+  const atualizarFreela = async (id: number, freelaAtualizada: Freela) => {
+    try {
+      await api.updateFreela(id, freelaAtualizada);
+      setListaFreelas((prev) =>
+        prev.map((freela) => (freela.id === id ? freelaAtualizada : freela))
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar freela:", error);
+      alert("Erro ao atualizar freela");
+    }
+  };
+
+  const deletarFreela = async (id: number) => {
+    const confirma = window.confirm("Tem certeza que deseja deletar esta diária?");
+    if (!confirma) return;
+
+    try {
+      await api.deleteFreela(id);
+      setListaFreelas((prev) => prev.filter((freela) => freela.id !== id));
+    } catch (error) {
+      console.error("Erro ao deletar freela:", error);
+      alert("Erro ao deletar freela");
+    }
+  };
+
+  // ==================== METAS ====================
+
+  const adicionarMeta = async (meta: Meta) => {
+    if (!user) return;
+
+    try {
+      const novaMeta = await api.addMeta(user.id, meta);
+      setListaMetas((prev) => [novaMeta, ...prev]);
+    } catch (error) {
+      console.error("Erro ao adicionar meta:", error);
+      alert("Erro ao salvar meta");
+    }
+  };
+
+  const deletarMeta = async (id: number) => {
+    const confirma = window.confirm("Tem certeza que deseja deletar esta meta?");
+    if (!confirma) return;
+
+    try {
+      await api.deleteMeta(id);
+      setListaMetas((prev) => prev.filter((meta) => meta.id !== id));
+    } catch (error) {
+      console.error("Erro ao deletar meta:", error);
+      alert("Erro ao deletar meta");
+    }
+  };
+
+  // ==================== GASTOS ====================
+
+  const adicionarGasto = async (gasto: Gasto) => {
+    if (!user) return;
+
+    try {
+      const novoGasto = await api.addGasto(user.id, gasto);
+      setListaGastos((prev) => [novoGasto, ...prev]);
+    } catch (error) {
+      console.error("Erro ao adicionar gasto:", error);
+      alert("Erro ao salvar gasto");
+    }
+  };
+
+  const deletarGasto = async (id: number) => {
+    const confirma = window.confirm("Tem certeza que deseja deletar este gasto?");
+    if (!confirma) return;
+
+    try {
+      await api.deleteGasto(id);
+      setListaGastos((prev) => prev.filter((gasto) => gasto.id !== id));
+    } catch (error) {
+      console.error("Erro ao deletar gasto:", error);
+      alert("Erro ao deletar gasto");
+    }
+  };
+
+  // ==================== NAVEGAÇÃO ====================
 
   const mudarPagina = (pagina: "freelas" | "metas" | "gastos") => {
     setPaginaAtiva(pagina);
   };
 
-  const adicionarMeta = (meta: Meta) => {
-    setListaMetas((prev) => [meta, ...prev]);
-  };
-
-  const deletarMeta = (id: number) => {
-    const confirma = window.confirm("Tem certeza que deseja deletar esta meta?");
-    if (confirma) {
-      setListaMetas((prev) => prev.filter((meta) => meta.id !== id));
-    }
-  };
-
-  // NOVO: Funções de gastos
-  const adicionarGasto = (gasto: Gasto) => {
-    setListaGastos((prev) => [gasto, ...prev]);
-  };
-
-  const deletarGasto = (id: number) => {
-    const confirma = window.confirm("Tem certeza que deseja deletar este gasto?");
-    if (confirma) {
-      setListaGastos((prev) => prev.filter((gasto) => gasto.id !== id));
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <p className="text-white text-xl">Carregando seus dados...</p>
+      </div>
+    );
+  }
 
   return (
     <FreelaContext.Provider
@@ -120,10 +194,10 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
         deletarMeta,
         saldoTotal,
         saldoMensal,
-        listaGastos,         // NOVO
-        adicionarGasto,      // NOVO
-        deletarGasto,        // NOVO
-        mediaLiquidaPorDia,  // NOVO
+        listaGastos,
+        adicionarGasto,
+        deletarGasto,
+        mediaLiquidaPorDia,
       }}
     >
       {children}

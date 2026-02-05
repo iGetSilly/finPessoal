@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useFreelaContext } from "../hooks/useFreelaContext";
 import { MetaCard } from "./MetaCard";
+import { NumericInput } from "./NumericInput";
 
 export function Metas() {
   const { listaMetas, adicionarMeta } = useFreelaContext();
-  
+
   const [titulo, setTitulo] = useState("");
   const [valorAlvo, setValorAlvo] = useState(20000);
 
@@ -46,12 +47,11 @@ export function Metas() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-zinc-500 text-xs">Valor Alvo (R$)</label>
-            <input
-              type="number"
+            <NumericInput
+              label="Valor Alvo (R$)"
               value={valorAlvo}
-              className="bg-zinc-800 p-2 rounded border border-zinc-700 text-white"
-              onChange={(e) => setValorAlvo(Number(e.target.value))}
+              onChange={setValorAlvo}
+              min={0}
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useFreelaContext } from "../hooks/useFreelaContext";
+import { NumericInput } from "./NumericInput";
 
 export function Gastos() {
   const {
@@ -74,7 +75,9 @@ export function Gastos() {
     <div className="flex flex-col gap-6 w-full max-w-4xl">
       {/* CARD DE CADASTRO DE GASTO */}
       <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-2xl">
-        <h3 className="text-white font-bold text-lg mb-4">💸 Adicionar Gasto</h3>
+        <h3 className="text-white font-bold text-lg mb-4">
+          💸 Adicionar Gasto
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
@@ -89,13 +92,11 @@ export function Gastos() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-zinc-500 text-xs">Valor (R$)</label>
-            <input
-              type="number"
-              step="0.01"
+            <NumericInput
+              label="Valor (R$)"
               value={valor}
-              className="bg-zinc-800 p-2 rounded border border-zinc-700 text-white"
-              onChange={(e) => setValor(Number(e.target.value))}
+              onChange={setValor}
+              min={0}
             />
           </div>
         </div>
@@ -111,7 +112,9 @@ export function Gastos() {
       {/* PAINEL DE RESUMO */}
       {listaGastos.length > 0 && (
         <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-          <h3 className="text-white font-bold text-xl mb-4">📊 Resumo Financeiro</h3>
+          <h3 className="text-white font-bold text-xl mb-4">
+            📊 Resumo Financeiro
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-zinc-800 p-4 rounded-xl">
@@ -129,7 +132,9 @@ export function Gastos() {
             </div>
 
             <div className="bg-zinc-800 p-4 rounded-xl">
-              <p className="text-zinc-500 text-xs">Total a Receber (Previsão)</p>
+              <p className="text-zinc-500 text-xs">
+                Total a Receber (Previsão)
+              </p>
               <p className="text-blue-400 font-bold text-2xl">
                 R$ {totalRecebidoPrevisao.toFixed(2)}
               </p>
@@ -157,7 +162,9 @@ export function Gastos() {
             </div>
 
             <div className="bg-zinc-800 p-4 rounded-xl">
-              <p className="text-zinc-500 text-xs">Vai Receber nos Dias Restantes</p>
+              <p className="text-zinc-500 text-xs">
+                Vai Receber nos Dias Restantes
+              </p>
               <p className="text-cyan-400 font-bold text-2xl">
                 R$ {totalRecebidoDiasRestantes.toFixed(2)}
               </p>
@@ -182,7 +189,9 @@ export function Gastos() {
 
       {/* LISTA DE GASTOS */}
       <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-        <h3 className="text-white font-bold text-lg mb-4">📝 Lista de Gastos</h3>
+        <h3 className="text-white font-bold text-lg mb-4">
+          📝 Lista de Gastos
+        </h3>
 
         {listaGastos.length === 0 ? (
           <p className="text-zinc-500 text-center py-8">
