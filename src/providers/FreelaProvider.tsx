@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { Freela } from "../types/Freela";
 import type { Meta } from "../types/Meta";
+import type { Gasto } from "../types/Gasto";
 import { FreelaContext } from "../contexts/FreelaContext";
 
 type FreelaProviderProps = {
@@ -13,35 +14,53 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
     return JSON.parse(localStorage.getItem("freelas") || "[]");
   });
 
-  const [paginaAtiva, setPaginaAtiva] = useState<"freelas" | "metas">("freelas");
+  const [paginaAtiva, setPaginaAtiva] = useState<"freelas" | "metas" | "gastos">("freelas");
 
-  // Estado de metas
   const [listaMetas, setListaMetas] = useState<Meta[]>(() => {
     return JSON.parse(localStorage.getItem("metas") || "[]");
   });
 
-  // Calcular saldo total automaticamente
+  // NOVO: Estado de gastos
+  const [listaGastos, setListaGastos] = useState<Gasto[]>(() => {
+    return JSON.parse(localStorage.getItem("gastos") || "[]");
+  });
+
+  // Calcular saldo total
   const saldoTotal = useMemo(() => {
     return listaFreelas.reduce((acc, freela) => acc + freela.totalLiquido, 0);
   }, [listaFreelas]);
 
-  const mediaMensal = useMemo(() => {
+  // Calcular saldo mensal (mês atual)
+  const saldoMensal = useMemo(() => {
   if (listaFreelas.length === 0) return 0;
-
+  
+  // Cria uma lista de strings "AAAA-MM"
   const mesesComAtividade = listaFreelas.map(freela => freela.data.substring(0, 7));
-  const quantidadeMeses = new Set(mesesComAtividade).size; //Removendo duplicatas
-
-  return saldoTotal / (quantidadeMeses || 1); // Evita divisão por zero
+  
+  // O Set remove as duplicatas automaticamente
+  const quantidadeMeses = new Set(mesesComAtividade).size;
+  
+  return saldoTotal / (quantidadeMeses || 1); 
 }, [listaFreelas, saldoTotal]);
+
+  // Calcular média líquida por dia de freela
+  const mediaLiquidaPorDia = useMemo(() => {
+    if (listaFreelas.length === 0) return 0;
+    return saldoTotal / listaFreelas.length;
+  }, [saldoTotal, listaFreelas.length]);
 
   useEffect(() => {
     localStorage.setItem("freelas", JSON.stringify(listaFreelas));
   }, [listaFreelas]);
 
-  // Salvar metas no localStorage
   useEffect(() => {
     localStorage.setItem("metas", JSON.stringify(listaMetas));
   }, [listaMetas]);
+
+  // NOVO: Salvar gastos no localStorage
+  useEffect(() => {
+    localStorage.setItem("gastos", JSON.stringify(listaGastos));
+  }, [listaGastos]);
 
   const adicionarFreela = (freela: Freela) => {
     setListaFreelas((prev) => [freela, ...prev]);
@@ -60,11 +79,10 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
     }
   };
 
-  const mudarPagina = (pagina: "freelas" | "metas") => {
+  const mudarPagina = (pagina: "freelas" | "metas" | "gastos") => {
     setPaginaAtiva(pagina);
   };
 
-  //Funções de metas
   const adicionarMeta = (meta: Meta) => {
     setListaMetas((prev) => [meta, ...prev]);
   };
@@ -73,6 +91,18 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
     const confirma = window.confirm("Tem certeza que deseja deletar esta meta?");
     if (confirma) {
       setListaMetas((prev) => prev.filter((meta) => meta.id !== id));
+    }
+  };
+
+  // NOVO: Funções de gastos
+  const adicionarGasto = (gasto: Gasto) => {
+    setListaGastos((prev) => [gasto, ...prev]);
+  };
+
+  const deletarGasto = (id: number) => {
+    const confirma = window.confirm("Tem certeza que deseja deletar este gasto?");
+    if (confirma) {
+      setListaGastos((prev) => prev.filter((gasto) => gasto.id !== id));
     }
   };
 
@@ -85,11 +115,15 @@ export function FreelaProvider({ children }: FreelaProviderProps) {
         deletarFreela,
         paginaAtiva,
         mudarPagina,
-        listaMetas,       
-        adicionarMeta,    
-        deletarMeta,      
-        saldoTotal,       
-        mediaMensal,
+        listaMetas,
+        adicionarMeta,
+        deletarMeta,
+        saldoTotal,
+        saldoMensal,
+        listaGastos,         // NOVO
+        adicionarGasto,      // NOVO
+        deletarGasto,        // NOVO
+        mediaLiquidaPorDia,  // NOVO
       }}
     >
       {children}

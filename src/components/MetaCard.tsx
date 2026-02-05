@@ -7,9 +7,9 @@ type MetaCardProps = {
 };
 
 export function MetaCard({ id, titulo, valorAlvo }: MetaCardProps) {
-  const { deletarMeta, mediaMensal } = useFreelaContext();
+  const { deletarMeta, saldoMensal } = useFreelaContext();
   
-  const porcentagem = Math.min((mediaMensal / valorAlvo) * 100, 100);
+  const porcentagem = Math.min((saldoMensal / valorAlvo) * 100, 100);
 
   return (
     <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-xl">
@@ -27,7 +27,7 @@ export function MetaCard({ id, titulo, valorAlvo }: MetaCardProps) {
 
       <div className="mt-4 flex items-baseline gap-2">
         <span className="text-3xl font-bold text-white">
-          R$ {mediaMensal.toFixed(2)}
+          R$ {saldoMensal.toFixed(2)}
         </span>
         <span className="text-zinc-500 text-sm">
           de R$ {valorAlvo.toLocaleString('pt-BR')}
